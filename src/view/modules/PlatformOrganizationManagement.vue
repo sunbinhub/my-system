@@ -14,30 +14,11 @@
         style="width: 200px; margin-right: 5px; border: 1px solid #ddd;"
         :style="platformAsideHeight"
       >
-        <div style="border-bottom: 1px solid #ccc; padding: 5px;">
-          <el-input
-            placeholder="输入关键字进行过滤"
-            v-model="filterText"
-            size="mini"
-          >
-          </el-input>
-        </div>
-        <el-tree
-          class="filter-tree"
-          :data="organizationData"
-          :props="defaultProps"
-          :filter-node-method="filterNode"
-          ref="tree"
-          node-key="id"
-          @node-click="nodeClick"
-        >
-          <span class="custom-tree-node" slot-scope="{ node, data }">
-            <span>
-              <i :class="data.icon"></i>
-              {{ node.label }}
-            </span>
-          </span>
-        </el-tree>
+        <AsideTree
+          :dataTree="organizationData"
+          @handleClick="getNodeId"
+          @dateTree="getOrganization()"
+        ></AsideTree>
       </el-aside>
       <!-- 左侧树形结构结束 -->
       <!-- 右侧主体开始 -->
@@ -170,6 +151,7 @@
 import { mapState, mapGetters } from "vuex";
 import SearchInput from "@/components/common-components/SearchInput";
 import Pagination from "@/components/common-components/Pagination";
+import AsideTree from "@/components/common-components/AsideTree";
 import AddOrganization from "@/view/modules/module-component/pom/AddOrganization";
 
 export default {
@@ -178,19 +160,13 @@ export default {
     Pagination,
     mapState,
     mapGetters,
-    AddOrganization
+    AddOrganization,
+    AsideTree
   },
   data() {
     return {
-      //树形控件
-      filterText: "",
       //树形结构数据
       organizationData: [],
-      //树形结构默认树形
-      defaultProps: {
-        children: "children",
-        label: "name"
-      },
       //左侧高度
       platformAsideHeight: {
         height: ""
@@ -214,7 +190,6 @@ export default {
 
     window.addEventListener("resize", this.getTableHeight); // 注册监听器
     this.getTableHeight(); // 页面创建时先调用一次
-    this.getOrganization(); //获取组织机构
   },
   watch: {
     filterText(val) {
@@ -222,7 +197,7 @@ export default {
     }
   },
   methods: {
-    //获取属性结构
+    //获取树型结构
     getOrganization() {
       this.axios
         .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 1, {
@@ -260,10 +235,6 @@ export default {
             this.$message.error(res.data.msg);
           }
         });
-    },
-    filterNode(value, data) {
-      if (!value) return true;
-      return data.name.indexOf(value) !== -1;
     },
     getPlatformAsideHeight() {
       // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
@@ -373,13 +344,14 @@ export default {
         });
       }
     },
-    nodeClick(row) {
-      //树形控件点击事件
-      this.nodeClickId = row.id;
-    },
     //新增组织成功刷新表格
     refreshTable(val) {
       this.getlist(val);
+    },
+    //获取树形结构节点id
+    getNodeId(val) {
+      debugger;
+      this.nodeClickId = val;
     }
   },
   computed: {
