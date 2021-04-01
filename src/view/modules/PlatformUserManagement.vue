@@ -14,63 +14,48 @@
         style="width: 200px; margin-right: 5px; border: 1px solid #ddd;"
         :style="platformAsideHeight"
       >
-        <div style="border-bottom: 1px solid #ccc; padding: 5px;">
-          <el-input
-            placeholder="输入关键字进行过滤"
-            v-model="filterText"
-            size="mini"
-          >
-          </el-input>
-        </div>
-        <el-tree
-          class="filter-tree"
-          :data="organizationData"
-          :props="defaultProps"
-          :filter-node-method="filterNode"
-          ref="tree"
-          node-key="id"
-        >
-          <span class="custom-tree-node" slot-scope="{ node, data }">
-            <span>
-              <i :class="data.icon"></i>
-              {{ node.label }}
-            </span>
-          </span>
-        </el-tree>
+        <AsideTree
+          :dataTree="dataTree"
+          @nodeClick="getNodeId"
+          @dateTree="getDataTree()"
+        ></AsideTree>
       </el-aside>
       <!-- 左侧树形结构结束 -->
       <!-- 右侧主体开始 -->
       <el-main class="organization-main">
         <el-container>
           <!-- 右侧头部开始 -->
-          <el-header class="organization-header">
-            <el-row class="fr">
-              <el-select
-                v-model="organizationStatus"
-                style="width:120px;"
-                placeholder="用户类型"
-                size="mini"
-              >
-                <el-option label="全部" value="all"></el-option>
-                <el-option label="停用" value="disable"></el-option>
-                <el-option label="启用" value="enable"></el-option>
-              </el-select>
-              <SearchInput
-                @searchValue="searchOrganization"
-                placeholder="请输入用户名/ID"
-              ></SearchInput>
-              <el-button
-                type="primary"
-                @click="dialogFormVisible = true"
-                size="mini"
-              >
-                新建用户
-              </el-button>
+          <el-header class="organization-header" style="height:30px;">
+            <el-row type="flex" class="row-bg" justify="end">
+              <el-col :span="15">
+                <el-select
+                  v-model="organizationStatus"
+                  style="width:120px;"
+                  placeholder="用户类型"
+                  size="mini"
+                >
+                  <el-option label="全部" value="all"></el-option>
+                  <el-option label="停用" value="disable"></el-option>
+                  <el-option label="启用" value="enable"></el-option>
+                </el-select>
+                <SearchInput
+                  @searchValue="searchOrganization"
+                  placeholder="请输入用户名/ID"
+                  extraClass="searchWidth"
+                ></SearchInput>
+                <el-button
+                  type="primary"
+                  @click="dialogFormVisible = true"
+                  size="mini"
+                >
+                  新建用户
+                </el-button>
+              </el-col>
             </el-row>
           </el-header>
           <!-- 右侧头部结束 -->
           <!-- 右侧表格开始 -->
-          <el-main style="padding-bottom:0;">
+          <el-main style="padding:0;">
             <template>
               <el-table
                 ref="multipleTable"
@@ -486,80 +471,17 @@
   </el-container>
 </template>
 <script>
+import { mapState, mapGetters } from "vuex";
 import SearchInput from "@/components/common-components/SearchInput";
 import Pagination from "@/components/common-components/Pagination";
+import AsideTree from "@/components/common-components/AsideTree";
+
 export default {
-  components: { SearchInput, Pagination },
+  components: { SearchInput, Pagination, AsideTree },
   data() {
     return {
-      //树形控件
-      filterText: "",
       //树形结构数据
-      organizationData: [
-        {
-          id: 1,
-          label: "一级 1",
-          icon: "el-icon-folder",
-          children: [
-            {
-              id: 4,
-              label: "二级 你好",
-              icon: "el-icon-folder",
-              children: [
-                {
-                  id: 9,
-                  label: "三级 1-1-1",
-                  icon: "el-icon-folder"
-                },
-                {
-                  id: 10,
-                  label: "三级 1-1-2",
-                  icon: "el-icon-folder"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: 2,
-          label: "一级 2",
-          icon: "el-icon-folder",
-          children: [
-            {
-              id: 5,
-              label: "二级 2-1",
-              icon: "el-icon-folder"
-            },
-            {
-              id: 6,
-              label: "二级 2-2",
-              icon: "el-icon-folder"
-            }
-          ]
-        },
-        {
-          id: 3,
-          label: "一级 3",
-          icon: "el-icon-folder",
-          children: [
-            {
-              id: 7,
-              label: "二级 3-1",
-              icon: "el-icon-folder"
-            },
-            {
-              id: 8,
-              label: "二级 3-2",
-              icon: "el-icon-folder"
-            }
-          ]
-        }
-      ],
-      //树形结构默认树形
-      defaultProps: {
-        children: "children",
-        label: "label"
-      },
+      dataTree: [],
       //左侧高度
       platformAsideHeight: {
         height: ""
@@ -703,9 +625,22 @@ export default {
     }
   },
   methods: {
-    filterNode(value, data) {
-      if (!value) return true;
-      return data.label.indexOf(value) !== -1;
+    //获取树型结构
+    getDataTree() {
+      this.axios
+        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 1, {
+          //row.id
+          params: { type: "0" },
+          headers: { authorization: this.tokenValue }
+        })
+        .then(res => {
+          //获取表格数据，默认第一页 10条
+          if (res.data && res.data.code === 0) {
+            this.dataTree = res.data.data;
+          } else {
+            this.$message.error(res.data.msg);
+          }
+        });
     },
     getPlatformAsideHeight() {
       // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
@@ -719,7 +654,7 @@ export default {
     },
     getTableHeight() {
       // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
-      this.tableHeight = window.innerHeight - 323 + "px";
+      this.tableHeight = window.innerHeight - 256 + "px";
     },
     //设置表格数据
     setTableData(data) {
@@ -764,7 +699,6 @@ export default {
     searchPlatformUser(value) {
       console.log(value);
     },
-
     // 选中
     handelSelect() {
       this.selectArr = this.handleConcatArr(this.selectArr, this.nowSelectData);
@@ -795,7 +729,19 @@ export default {
           }
         }
       }
+    },
+    //获取树形结构节点id
+    getNodeId(val) {
+      this.nodeClickId = val;
     }
+  },
+  computed: {
+    ...mapState({
+      userInfo: state => state.userInfo
+    }),
+    ...mapGetters({
+      tokenValue: "tokenValue"
+    })
   }
 };
 </script>
@@ -829,5 +775,8 @@ export default {
 }
 .spacing {
   margin-top: 10px;
+}
+.searchWidth {
+  width: 150px;
 }
 </style>

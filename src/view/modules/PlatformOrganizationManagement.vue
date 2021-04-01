@@ -15,9 +15,9 @@
         :style="platformAsideHeight"
       >
         <AsideTree
-          :dataTree="organizationData"
-          @handleClick="getNodeId"
-          @dateTree="getOrganization()"
+          :dataTree="dataTree"
+          @nodeClick="getNodeId"
+          @dateTree="getDataTree()"
         ></AsideTree>
       </el-aside>
       <!-- 左侧树形结构结束 -->
@@ -40,7 +40,9 @@
                 ></SearchInput>
               </el-col>
               <el-col :span="6">
-                <el-button type="info" size="mini">查询</el-button>
+                <el-button type="info" size="mini" @click="searchOrganization">
+                  查询
+                </el-button>
                 <el-button
                   type="primary"
                   @click="dialogFormVisible = true"
@@ -131,12 +133,17 @@
           </el-main>
           <!-- 右侧表格结束 -->
           <!-- 弹窗开始 -->
-          <el-dialog :visible.sync="dialogFormVisible">
+          <el-dialog
+            :visible.sync="dialogFormVisible"
+            :show-close="false"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+          >
             <AddOrganization
-              @close="dialogFormVisible = false"
+              @close="resetForm"
               @refresh="refreshTable"
               :organizationForm="changeOrganization"
-              :parentId="userInfo.id"
+              :options="dataTree"
             ></AddOrganization>
           </el-dialog>
           <!-- 弹窗结束 -->
@@ -166,12 +173,12 @@ export default {
   data() {
     return {
       //树形结构数据
-      organizationData: [],
+      dataTree: [],
       //左侧高度
       platformAsideHeight: {
         height: ""
       },
-      organizationStatus: "", //组织状态
+      organizationStatus: null, //组织状态
       //组织表格数据
       tableData: [],
       //选中的表格数据
@@ -179,9 +186,8 @@ export default {
       tableHeight: "", //表格高度
       dialogFormVisible: false, //弹窗是否显示
       totalCount: null, //表格数据总条数
-      nodeClickId: null, //组织机构id
-      changeOrganization: {}, //修改组织的信息
-      parentId: "" //当前用户id
+      nodeClickId: 0, //组织机构id 默认全部
+      changeOrganization: {} //修改组织的信息
     };
   }, // 生命周期 - 创建完成（可以访问当前this实例）
   created() {
@@ -198,17 +204,16 @@ export default {
   },
   methods: {
     //获取树型结构
-    getOrganization() {
+    getDataTree() {
       this.axios
-        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 1, {
-          //row.id
+        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 0, {
           params: { type: "0" },
           headers: { authorization: this.tokenValue }
         })
         .then(res => {
           //获取表格数据，默认第一页 10条
           if (res.data && res.data.code === 0) {
-            this.organizationData = res.data.data;
+            this.dataTree = res.data.data;
           } else {
             this.$message.error(res.data.msg);
           }
@@ -217,11 +222,14 @@ export default {
     //设置表格数据
     getlist(data) {
       this.axios
-        .get("http://192.168.0.40:9900/uc/sys/organization/page/" + 3, {
-          //this.userInfo.id
-          params: data,
-          headers: { authorization: this.tokenValue }
-        })
+        .get(
+          "http://192.168.0.40:9900/uc/sys/organization/page/" +
+            this.nodeClickId,
+          {
+            params: data,
+            headers: { authorization: this.tokenValue }
+          }
+        )
         .then(res => {
           //获取表格数据，默认第一页 10条
           if (res.data && res.data.code === 0) {
@@ -240,15 +248,23 @@ export default {
       // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
       this.platformAsideHeight.height = window.innerHeight - 172 + "px";
     },
-    //搜索功能
+    //搜索框搜索功能
     searchOrganization(value) {
-      let searchParams = {
-        parentId: this.nodeClickId, //机构id
-        disableFlag: this.organizationStatus, //状态
-        condition: value, //搜索值
-        limit: 10, //每页10条
-        page: 1 //第一页
-      };
+      let searchParams = {};
+      if (typeof value === "string") {
+        searchParams = {
+          disableFlag: this.organizationStatus, //状态
+          condition: value, //搜索值
+          limit: 10, //每页10条
+          page: 1 //第一页
+        };
+      } else {
+        searchParams = {
+          disableFlag: this.organizationStatus, //状态
+          limit: 10, //每页10条
+          page: 1 //第一页
+        };
+      }
       this.getlist(searchParams);
     },
     getTableHeight() {
@@ -263,7 +279,6 @@ export default {
     },
     //表格删除事件
     removeClick(row) {
-      debugger;
       this.axios({
         method: "post",
         url: "http://192.168.0.40:9900/uc/sys/organization/delete/" + row.id,
@@ -282,7 +297,6 @@ export default {
     },
     //表格停用事件
     disableClick(row) {
-      debugger;
       this.axios({
         method: "post",
         url:
@@ -306,8 +320,7 @@ export default {
     //表格点击事件
     cellClick(row, column, event, cell) {
       this.axios
-        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 1, {
-          //row.id
+        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + row.id, {
           params: { type: "0" },
           headers: { authorization: this.tokenValue }
         })
@@ -346,12 +359,16 @@ export default {
     },
     //新增组织成功刷新表格
     refreshTable(val) {
-      this.getlist(val);
+      this.getlist(val); //刷新表格
+      this.getDataTree(); //刷新左侧机构
     },
     //获取树形结构节点id
     getNodeId(val) {
-      debugger;
       this.nodeClickId = val;
+    },
+    resetForm() {
+      this.changeOrganization = {};
+      this.dialogFormVisible = false;
     }
   },
   computed: {

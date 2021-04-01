@@ -67,7 +67,7 @@ export default {
     },
     //树形控件点击事件
     nodeClick(row) {
-      this.$emit("handleClick", row.id);
+      this.$emit("nodeClick", row.id);
     }
   }
 };

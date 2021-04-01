@@ -55,21 +55,24 @@
       <el-form-item
         label="上级机构"
         :label-width="formLabelWidth"
-        prop="fparentName"
+        prop="parentId"
         size="mini"
       >
-        <el-select
-          v-model="organizationForm.fparentName"
-          placeholder="请选择活动区域"
-          size="mini"
-        >
+        <el-select placeholder="请选择" v-model="organizationForm.parentId">
           <el-option
-            v-for="item in dialogParentOrganizationOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-            size="mini"
+            :value="organizationForm.parentId"
+            :label="organizationForm.parentName"
+            style="height:150px;overflow:auto;background:#fff;"
           >
+            <el-tree
+              id="tree-option"
+              ref="selectTree"
+              :data="options"
+              :props="defaultProps"
+              :default-expanded-keys="defaultExpandedKey"
+              @node-click="handleNodeClick"
+            >
+            </el-tree>
           </el-option>
         </el-select>
       </el-form-item>
@@ -97,74 +100,34 @@
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+
 export default {
   name: "AddOrganization",
+  components: { mapGetters },
   props: {
-    parentId: {
-      type: String
-    },
     organizationForm: {
       type: Object,
       default: () => ({
         type: "", //弹窗内选择类型选项值
-        fparentName: "", //弹窗内上级机构选项值
+        parentName: "", //弹窗内上级机构选项值
         name: "", //组织名称
         sort: "", //排序号
         fullName: "", //组织全称
         code: "", //组织代码
-        id: ""
+        id: "",
+        parentId: ""
       })
+    },
+    options: {
+      type: Array,
+      default: []
     }
   },
   data() {
     return {
       formLabelWidth: "120px", //弹窗内部左侧的距离
-      //弹窗内组织选项
-      dialogOrganizationOptions: [
-        {
-          value: "选项1",
-          label: "黄金糕"
-        },
-        {
-          value: "选项2",
-          label: "双皮奶"
-        },
-        {
-          value: "选项3",
-          label: "蚵仔煎"
-        },
-        {
-          value: "选项4",
-          label: "龙须面"
-        },
-        {
-          value: "选项5",
-          label: "北京烤鸭"
-        }
-      ],
       //弹窗内上级机构选项
-      dialogParentOrganizationOptions: [
-        {
-          value: "选项1",
-          label: "黄金糕"
-        },
-        {
-          value: "选项2",
-          label: "双皮奶"
-        },
-        {
-          value: "选项3",
-          label: "蚵仔煎"
-        },
-        {
-          value: "选项4",
-          label: "龙须面"
-        },
-        {
-          value: "选项5",
-          label: "北京烤鸭"
-        }
-      ],
       organizationRules: {
         name: [
           { required: true, message: "请输入组织名称", trigger: "blur" },
@@ -177,28 +140,32 @@ export default {
         type: [
           { required: true, message: "请输入选择类型", trigger: "change" }
         ],
-        fparentName: [
-          { required: true, message: "请输入上级机构", trigger: "change" }
-        ]
-      }
+        id: [{ required: true, message: "请输入上级机构", trigger: "change" }]
+      },
+      defaultProps: {
+        //默认值
+        children: "children",
+        label: "name"
+      },
+      defaultExpandedKey: [], //默认打开
+      treeDataId: "" //树形结构id
     };
   },
   methods: {
     //重置弹窗表格并关闭
     closeForm(formName) {
-      this.$refs[formName].resetFields();
       this.$emit("close", "关闭弹窗");
+      this.$refs[formName].resetFields();
     },
     //提交弹窗表单
     submitDialogForm(formName) {
       this.$refs[formName].validate(valid => {
-        debugger;
         if (valid) {
           if (!this.organizationForm.id) {
             let postParams = this.qs.parse({
               fullName: this.organizationForm.fullName,
               name: this.organizationForm.name,
-              parentId: this.parentId,
+              parentId: this.organizationForm.parentId,
               sort: this.organizationForm.sort,
               type: this.organizationForm.type,
               code: this.organizationForm.code
@@ -215,6 +182,7 @@ export default {
               //获取表格数据，默认第一页 10条
               if (res.data && res.data.code === 0) {
                 this.$message.success("新增组织机构成功！");
+                this.closeForm(formName); //关闭弹窗
                 this.$emit("refresh", { limit: 10, page: 1 }); //刷新表格数据
               } else {
                 this.$message.error(res.data.msg);
@@ -225,7 +193,7 @@ export default {
               fullName: this.organizationForm.fullName,
               id: this.organizationForm.id,
               name: this.organizationForm.name,
-              parentId: this.parentId,
+              parentId: this.organizationForm.parentId,
               sort: this.organizationForm.sort,
               type: this.organizationForm.type
             });
@@ -241,6 +209,7 @@ export default {
               //获取表格数据，默认第一页 10条
               if (res.data && res.data.code === 0) {
                 this.$message.success("修改组织机构成功！");
+                this.closeForm(formName); //关闭弹窗
                 this.$emit("refresh", { limit: 10, page: 1 }); //刷新表格数据
               } else {
                 this.$message.error(res.data.msg);
@@ -252,7 +221,18 @@ export default {
           return false;
         }
       });
+    },
+    //树形结构点击事件
+    handleNodeClick(row) {
+      //给对象新增属性
+      this.$set(this.organizationForm, "parentId", row.id);
+      this.$set(this.organizationForm, "parentName", row.name);
     }
+  },
+  computed: {
+    ...mapGetters({
+      tokenValue: "tokenValue"
+    })
   }
 };
 </script>

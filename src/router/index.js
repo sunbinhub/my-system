@@ -59,7 +59,7 @@ router.beforeEach((to, from, next) => {
               //目前是vue-router：3.0.1版本
               router.addRoutes(routes);
               hasMenus = true;
-              next({ path: to.path || "/PlatformUserManagement" }); //默认跳转页面
+              next({ path: to.path || "/PlatformOrganizationManagement" }); //默认跳转页面
             } else {
               sessionStorage.setItem("tokenInfo", "[]");
               next();
