@@ -74,7 +74,7 @@
                 添加用户
               </el-button>
               <el-dropdown size="small">
-                <span class="el-dropdown-link">
+                <span class="el-dropdown-link" style="font-size:10px;">
                   更多
                 </span>
                 <el-dropdown-menu slot="dropdown">
@@ -85,11 +85,12 @@
                   </el-dropdown-item>
                   <el-dropdown-item
                     @click.native="setRoleTacticsClick(scope.row)"
-                    >设置角色策略</el-dropdown-item
                   >
-                  <el-dropdown-item @click.native="removeRoleClick(scope.row)"
-                    >删除角色</el-dropdown-item
-                  >
+                    设置角色策略
+                  </el-dropdown-item>
+                  <el-dropdown-item @click.native="removeRoleClick(scope.row)">
+                    删除角色
+                  </el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
             </template>
@@ -102,6 +103,9 @@
           :modal-append-to-body="false"
           width="80%"
           top="1vh"
+          :show-close="false"
+          :close-on-click-modal="false"
+          :close-on-press-escape="false"
         >
           <div v-if="tableDialog === 1">
             <ShowRole

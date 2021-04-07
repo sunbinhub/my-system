@@ -97,6 +97,9 @@
           title="添加应用"
           :visible.sync="dialogFormVisible"
           class="user-managed-dialog"
+          :show-close="false"
+          :close-on-click-modal="false"
+          :close-on-press-escape="false"
         >
           <el-form>
             <el-form-item label="选择机构" :label-width="formLabelWidth">
@@ -450,7 +453,7 @@ export default {
       this.$message("字数超出限制！");
     },
     searchUsers(value) {
-      console.log("接收到："+value)
+      console.log("接收到：" + value);
     }
   }
 };

@@ -59,7 +59,7 @@ router.beforeEach((to, from, next) => {
               //目前是vue-router：3.0.1版本
               router.addRoutes(routes);
               hasMenus = true;
-              next({ path: to.path || "/PlatformOrganizationManagement" }); //默认跳转页面
+              next({ path: to.path || "/CosManagement" }); //默认跳转页面
             } else {
               sessionStorage.setItem("tokenInfo", "[]");
               next();
@@ -67,7 +67,7 @@ router.beforeEach((to, from, next) => {
           });
       } catch (err) {
         console.log(
-          `%c${e} 请求菜单列表和权限失败，跳转至登录页！！`,
+          `%c${err} 请求菜单列表和权限失败，跳转至登录页！！`,
           "color:blue"
         );
         router.push({ name: "login" });

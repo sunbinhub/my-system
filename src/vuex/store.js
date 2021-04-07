@@ -23,7 +23,7 @@ const state = {
   tokenInfo: JSON.parse(sessionStorage.getItem("tokenInfo") || "[]"), //token值
   menuInfo: JSON.parse(sessionStorage.getItem("menuInfo") || "[]"), //菜单信息
   userInfo: JSON.parse(sessionStorage.getItem("userInfo") || "[]"), //用户信息
-  mainTabs: [], //顶层导航蓝标签页数据
+  mainTabs: [], //顶层导航标签页数据
   mainTabsActiveName: "" //当前激活的顶层导航栏
 };
 

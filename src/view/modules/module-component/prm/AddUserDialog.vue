@@ -140,10 +140,10 @@ export default {
         .then(res => {
           if (res.data && res.data.code === 0) {
             let resData = res.data.data.list.slice(0); //所有的用户 - slice截取数组中的一项(深拷贝)
-            let userIdsLehgtn = this.userIds.length; //已有的用户
+            let dataLength = this.userIds.length; //已有的用户
             //去除角色下已有用户的数据
             for (let i = resData.length - 1; i >= 0; i--) {
-              for (let j = 0; j < userIdsLehgtn; j++) {
+              for (let j = 0; j < dataLength; j++) {
                 if (resData[i].id === this.userIds[j]) {
                   resData.splice(i, 1); //splice删除数组中的一项
                 }

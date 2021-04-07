@@ -11,7 +11,7 @@
     >
       <h1 class="title">
         <i class="el-icon-setting"></i>
-        clinbtain登录
+        clinbrain登录
       </h1>
 
       <el-form-item label="账号" prop="userName">
@@ -123,7 +123,7 @@ export default {
                       //思考：根据网友的经验，是我路由跳转和路由拦截的 path 冲突了
                       //解决：不影响操作，只需要把登陆按钮那里添加一个错误异常抛出就行即可: .catch(() => {})；
                       _this.$router
-                        .push("/PlatformOrganizationManagement") //默认跳转页面
+                        .push("/CosManagement") //默认跳转页面
                         .catch(() => {});
                     }
                   });

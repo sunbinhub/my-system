@@ -34,17 +34,22 @@ export default {
     dataTree: {
       type: Array,
       default: []
+    },
+    //树形结构默认树形
+    defaultProps: {
+      type: Object,
+      default() {
+        return {
+          children: "children",
+          label: "name"
+        };
+      }
     }
   },
   data() {
     return {
       //树形控件
-      filterText: "",
-      //树形结构默认树形
-      defaultProps: {
-        children: "children",
-        label: "name"
-      }
+      filterText: ""
     };
   },
   created() {

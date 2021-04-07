@@ -49,6 +49,9 @@
           append-to-body
           width="79%"
           top="2vh"
+          :show-close="false"
+          :close-on-click-modal="false"
+          :close-on-press-escape="false"
         >
           <AddUserDialog
             :userIds="userIds"

@@ -17,7 +17,7 @@
         <AsideTree
           :dataTree="dataTree"
           @nodeClick="getNodeId"
-          @dateTree="getDataTree()"
+          @dateTree="getDataTree"
         ></AsideTree>
       </el-aside>
       <!-- 左侧树形结构结束 -->
@@ -25,24 +25,25 @@
       <el-main class="organization-main">
         <el-container>
           <!-- 右侧头部开始 -->
-          <el-header class="organization-header" style="height:30px;">
-            <el-row type="flex" class="row-bg" justify="end">
-              <el-col :span="15">
+          <el-header style="height:30px;">
+            <el-row>
+              <el-col :span="21">
                 <el-select
                   v-model="organizationStatus"
-                  style="width:120px;"
                   placeholder="用户类型"
                   size="mini"
                 >
-                  <el-option label="全部" value="all"></el-option>
-                  <el-option label="停用" value="disable"></el-option>
-                  <el-option label="启用" value="enable"></el-option>
+                  <el-option label="普通用户" value="0"></el-option>
+                  <el-option label="第三方测试人员" value="1"></el-option>
+                  <el-option label="管理员" value="8"></el-option>
+                  <el-option label="系统管理员" value="9"></el-option>
                 </el-select>
                 <SearchInput
                   @searchValue="searchOrganization"
                   placeholder="请输入用户名/ID"
-                  extraClass="searchWidth"
                 ></SearchInput>
+              </el-col>
+              <el-col :span="3">
                 <el-button
                   type="primary"
                   @click="dialogFormVisible = true"
@@ -59,408 +60,143 @@
             <template>
               <el-table
                 ref="multipleTable"
-                :data="organizationTableData"
+                :data="tableData"
                 tooltip-effect="dark"
                 style="width: 100%"
-                @selection-change="handleSelectionChange"
                 :height="tableHeight"
               >
-                <el-table-column type="selection" width="55"> </el-table-column>
                 <el-table-column
-                  prop="name"
+                  type="index"
                   label="序号"
                   align="center"
                   width="100"
                   sortable
                 ></el-table-column>
-                <el-table-column label="日期" width="120">
-                  <template slot-scope="scope">{{ scope.row.date }}</template>
+                <el-table-column prop="id" label="用户ID" width="120">
                 </el-table-column>
-                <el-table-column prop="name" label="姓名" width="120">
+                <el-table-column prop="username" label="用户名" width="120">
                 </el-table-column>
                 <el-table-column
-                  prop="address"
-                  label="地址"
-                  show-overflow-tooltip
+                  prop="departmentName"
+                  label="所属科室"
+                  width="120"
                 >
                 </el-table-column>
-                <el-table-column label="操作" width="263">
+                <el-table-column prop="name" label="所属角色" width="120">
+                </el-table-column>
+                <el-table-column prop="type" label="用户类型" width="120">
+                  <template slot-scope="scope">
+                    <span v-if="scope.row.type === 0">普通用户</span>
+                    <span v-if="scope.row.type === 1">第三方测试人员</span>
+                    <span v-if="scope.row.type === 8">管理员</span>
+                    <span v-if="scope.row.type === 9">系统管理员</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="disableFlag" label="状态" width="120">
+                  <template slot-scope="scope">
+                    <span v-if="scope.row.disableFlag === 0">在用</span>
+                    <span v-if="scope.row.disableFlag === 1">停用</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="260">
                   <template slot-scope="scope">
                     <el-button
-                      @click="11111(scope.row)"
+                      @click="changeInfo(scope.row)"
                       type="text"
                       size="small"
                     >
                       修改信息
                     </el-button>
                     <el-button
-                      @click="22222(scope.row)"
+                      @click="disabledUser(scope.row)"
                       type="text"
                       size="small"
                     >
                       停用用户
                     </el-button>
                     <el-button
-                      @click="3333(scope.row)"
+                      @click="setRole(scope.row)"
                       type="text"
                       size="small"
                     >
                       设置角色
                     </el-button>
-                    <el-button
-                      @click="4444(scope.row)"
-                      type="text"
-                      size="small"
-                    >
-                      更多操作
-                    </el-button>
+                    <el-dropdown size="small">
+                      <span
+                        class="el-dropdown-link"
+                        style="font-size:10px;color:#409EFF;cursor: pointer;"
+                      >
+                        更多操作
+                      </span>
+                      <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item
+                          @click.native="restoreOriginalPassword(scope.row)"
+                          style="color:#409EFF;"
+                        >
+                          恢复原始密码
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          @click.native="unlockUser(scope.row)"
+                          style="color:#409EFF;"
+                        >
+                          解锁用户
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          @click.native="removeUser(scope.row)"
+                          style="color:#409EFF;"
+                        >
+                          删除用户
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          @click.native="applicationCategory(scope.row)"
+                          style="color:#409EFF;"
+                        >
+                          应用范畴
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </el-dropdown>
                   </template>
                 </el-table-column>
               </el-table>
               <div class="page">
                 <Pagination
-                  :tableData="organizationTableData"
-                  @paginationChange="setTableData"
+                  :totalCount="totalCount"
+                  @paginationChange="getlist"
                 >
                 </Pagination>
               </div>
+              <el-dialog
+                :visible.sync="dialogFormEvent"
+                style="width:1300px;"
+                :show-close="false"
+                :close-on-click-modal="false"
+                :close-on-press-escape="false"
+              >
+                <div v-if="eventId === 1">
+                  <UserInfo
+                    :userInfoData="userInfoData"
+                    @closeDialog="dialogFormEvent = false"
+                  ></UserInfo>
+                </div>
+                <div v-if="eventId === 2">
+                  <SetRole
+                    :userRoleId="userIdDialog"
+                    @closeDialog="dialogFormEvent = false"
+                  ></SetRole>
+                </div>
+              </el-dialog>
             </template>
           </el-main>
           <!-- 右侧表格结束 -->
           <!-- 弹窗开始 -->
-          <el-dialog :visible.sync="dialogFormVisible" style="width:1300px;">
-            <el-container>
-              <el-header
-                style="font-size:20px; border-bottom: 1px solid #ccc;height: 30px;"
-              >
-                <i class="el-icon-back"></i>
-                <span>新增用户信息</span>
-              </el-header>
-              <el-container>
-                <el-header>
-                  <el-steps
-                    :active="active"
-                    finish-status="success"
-                    simple
-                    style="margin-top: 20px"
-                  >
-                    <el-step title="步骤 1"></el-step>
-                    <el-step title="步骤 2"></el-step>
-                    <el-step title="步骤 3"></el-step>
-                  </el-steps>
-                </el-header>
-                <el-main>
-                  <div
-                    v-show="dialogId === 1 ? true : false"
-                    style="height:400px; overflow:auto;"
-                  >
-                    <el-form
-                      :model="platformUserForm"
-                      :rules="platformUserFormRules"
-                      ref="platformUserForm"
-                      label-width="100px"
-                      class="demo-ruleForm"
-                    >
-                      <el-form-item
-                        label="用户id"
-                        prop="platformUserId"
-                        size="mini"
-                      >
-                        <el-input
-                          v-model="platformUserForm.platformUserId"
-                          size="mini"
-                          style="width:200px;"
-                        ></el-input>
-                      </el-form-item>
-                      <el-form-item label="用户姓名" prop="platformUserName">
-                        <el-input
-                          v-model="platformUserForm.platformUserName"
-                          size="mini"
-                          style="width:200px;"
-                        ></el-input>
-                      </el-form-item>
-                      <el-form-item
-                        label="用户类型"
-                        prop="platformUserType"
-                        size="mini"
-                      >
-                        <el-select
-                          v-model="platformUserForm.platformUserType"
-                          placeholder="请选择活动区域"
-                          size="mini"
-                        >
-                          <el-option
-                            label="区域一"
-                            value="shanghai"
-                          ></el-option>
-                          <el-option label="区域二" value="beijing"></el-option>
-                        </el-select>
-                      </el-form-item>
-                      <el-form-item
-                        label="所属科室"
-                        prop="subordinateDepartments"
-                        size="mini"
-                      >
-                        <el-select
-                          v-model="platformUserForm.subordinateDepartments"
-                          placeholder="请选择活动区域"
-                          size="mini"
-                        >
-                          <el-option
-                            label="区域一"
-                            value="shanghai"
-                          ></el-option>
-                          <el-option label="区域二" value="beijing"></el-option>
-                        </el-select>
-                      </el-form-item>
-                      <el-form-item
-                        label="所属病区"
-                        prop="subordinateInpatientWard"
-                        size="mini"
-                      >
-                        <el-select
-                          v-model="platformUserForm.subordinateInpatientWard"
-                          placeholder="请选择活动区域"
-                          size="mini"
-                        >
-                          <el-option
-                            label="区域一"
-                            value="shanghai"
-                          ></el-option>
-                          <el-option label="区域二" value="beijing"></el-option>
-                        </el-select>
-                      </el-form-item>
-                      <el-form-item
-                        label="应用系统"
-                        prop="applicationSystem"
-                        size="mini"
-                      >
-                        <el-checkbox-group
-                          v-model="platformUserForm.applicationSystem"
-                          style="width:200px;"
-                        >
-                          <el-checkbox
-                            label="美食/餐厅线上活动"
-                            name="type"
-                          ></el-checkbox>
-                          <el-checkbox
-                            label="地推活动"
-                            name="type"
-                          ></el-checkbox>
-                          <el-checkbox
-                            label="线下主题活动"
-                            name="type"
-                          ></el-checkbox>
-                          <el-checkbox
-                            label="单纯品牌曝光"
-                            name="type"
-                          ></el-checkbox>
-                        </el-checkbox-group>
-                      </el-form-item>
-                      <el-form-item label="状态" prop="statu" size="mini">
-                        <el-radio-group v-model="platformUserForm.statu">
-                          <el-radio label="在用"></el-radio>
-                          <el-radio label="停用"></el-radio>
-                        </el-radio-group>
-                      </el-form-item>
-                      <el-form-item label="描述" size="mini">
-                        <el-input
-                          type="textarea"
-                          :rows="3"
-                          v-model="textarea"
-                          resize="none"
-                          style="width:200px;"
-                        >
-                        </el-input>
-                      </el-form-item>
-                      <el-form-item size="mini">
-                        <el-button type="primary" @click="next()">
-                          下一步
-                        </el-button>
-                      </el-form-item>
-                    </el-form>
-                  </div>
-                  <div v-show="dialogId === 2 ? true : false">
-                    <span
-                      style="display: block;margin-bottom: 10px;font-weight: bold;"
-                    >
-                      选择角色
-                    </span>
-                    <template>
-                      <div>
-                        <el-col :span="10" style="border:1px solid #ccc;">
-                          <el-row
-                            style="height: 30px; line-height:29px; background:#ddd; padding: 0 5px;"
-                          >
-                            <span>
-                              待选平台角色列表
-                            </span>
-                            <SearchInput
-                              @searchValue="searchPlatformUser"
-                              placeholder="请输入用户名/ID"
-                              class="fr"
-                            ></SearchInput>
-                          </el-row>
-                          <el-table
-                            :data="platformUserData"
-                            ref="selection"
-                            @selection-change="checkAll"
-                            style="width: 100%; overflow:auto;"
-                            height="320px"
-                          >
-                            <el-table-column
-                              type="selection"
-                              width="30"
-                              fixed
-                            ></el-table-column>
-                            <el-table-column
-                              prop="date"
-                              label="日期"
-                              width="100"
-                            >
-                            </el-table-column>
-                            <el-table-column
-                              prop="name"
-                              label="姓名"
-                              width="100"
-                            >
-                            </el-table-column>
-                            <el-table-column prop="address" label="地址">
-                            </el-table-column>
-                          </el-table>
-                        </el-col>
-                        <el-col :span="2">
-                          <div class="opSetting">
-                            <div @click="handelSelect">
-                              <el-button
-                                icon="el-icon-d-arrow-right"
-                                :disabled="nowSelectData.length ? false : true"
-                                :size="buttonSize"
-                                type="primary"
-                              >
-                              </el-button>
-                            </div>
-                            <div class="spacing" @click="handleRemoveSelect">
-                              <el-button
-                                icon="el-icon-d-arrow-left"
-                                :disabled="
-                                  nowSelectRightData.length ? false : true
-                                "
-                                :size="buttonSize"
-                                type="primary"
-                              >
-                              </el-button>
-                            </div>
-                          </div>
-                        </el-col>
-                        <el-col :span="11" style="border:1px solid #ccc;">
-                          <el-row
-                            style="height: 30px; line-height:29px; background:#ddd; padding: 0 5px;"
-                          >
-                            <span>
-                              已选平台角色
-                            </span>
-                          </el-row>
-                          <el-table
-                            :data="selectArr"
-                            ref="selection"
-                            @selection-change="checkRightAll"
-                            style="width: 100 %;overflow:auto;"
-                            height="320px"
-                          >
-                            <el-table-column
-                              type="selection"
-                              width="30"
-                            ></el-table-column>
-                            <el-table-column
-                              prop="date"
-                              label="日期"
-                              width="100"
-                            >
-                            </el-table-column>
-                            <el-table-column
-                              prop="name"
-                              label="姓名"
-                              width="100"
-                            >
-                            </el-table-column>
-                            <el-table-column prop="address" label="地址">
-                            </el-table-column>
-                          </el-table>
-                        </el-col>
-                        <el-button
-                          style="margin-top: 12px;"
-                          @click="last()"
-                          size="mini"
-                        >
-                          上一步
-                        </el-button>
-                        <el-button
-                          type="primary"
-                          style="margin-top: 12px;"
-                          @click="next()"
-                          size="mini"
-                        >
-                          下一步
-                        </el-button>
-                      </div>
-                    </template>
-                  </div>
-                  <div v-show="dialogId === 3 ? true : false">
-                    <div>
-                      <template>
-                        <el-row style="margin-bottom:5px;">用户信息</el-row>
-                        <el-table
-                          :data="UserInfoData"
-                          style="width: 100%"
-                          border
-                        >
-                          <el-table-column prop="date" label="日期" width="180">
-                          </el-table-column>
-                          <el-table-column prop="name" label="姓名" width="180">
-                          </el-table-column>
-                          <el-table-column prop="address" label="地址">
-                          </el-table-column>
-                        </el-table>
-                      </template>
-                      <div style="height:30px;"></div>
-                      <template>
-                        <el-row style="margin-bottom:5px;">角色权限</el-row>
-                        <el-table
-                          :data="UserLimitsData"
-                          style="width: 100%"
-                          border
-                        >
-                          <el-table-column prop="date" label="日期" width="180">
-                          </el-table-column>
-                          <el-table-column prop="name" label="姓名" width="180">
-                          </el-table-column>
-                          <el-table-column prop="address" label="地址">
-                          </el-table-column>
-                        </el-table>
-                      </template>
-                    </div>
-                    <div style="margin-top:65px;">
-                      <el-button
-                        style="margin-top: 12px;"
-                        @click="last()"
-                        size="mini"
-                      >
-                        上一步
-                      </el-button>
-                      <el-button
-                        type="primary"
-                        style="margin-top: 12px;"
-                        @click="submitForm(formName)"
-                        size="mini"
-                      >
-                        完成
-                      </el-button>
-                    </div>
-                  </div>
-                </el-main>
-              </el-container>
-            </el-container>
+          <el-dialog
+            :visible.sync="dialogFormVisible"
+            style="width:1300px;"
+            :show-close="false"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+          >
+            <CreateUser @close="dialogFormVisible = false"></CreateUser>
           </el-dialog>
           <!-- 弹窗结束 -->
         </el-container>
@@ -475,9 +211,19 @@ import { mapState, mapGetters } from "vuex";
 import SearchInput from "@/components/common-components/SearchInput";
 import Pagination from "@/components/common-components/Pagination";
 import AsideTree from "@/components/common-components/AsideTree";
+import CreateUser from "@/view/modules/module-component/pum/CreateUser";
+import UserInfo from "@/view/modules/module-component/pum/UserInfo";
+import SetRole from "@/view/modules/module-component/pum/SetRole";
 
 export default {
-  components: { SearchInput, Pagination, AsideTree },
+  components: {
+    SearchInput,
+    Pagination,
+    AsideTree,
+    CreateUser,
+    UserInfo,
+    SetRole
+  },
   data() {
     return {
       //树形结构数据
@@ -488,127 +234,17 @@ export default {
       },
       organizationStatus: "", //组织状态
       //组织表格数据
-      organizationTableData: [
-        {
-          date: "2016-05-03",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-02",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-04",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-01",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-08",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-06",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-07",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        }
-      ],
+      tableData: [],
       //选中的表格数据
       multipleSelection: [],
       tableHeight: "", //表格高度
       dialogFormVisible: false, //弹窗是否显示
-      active: 0, //步骤条
-      dialogId: 1, //弹窗内默认显示内容
-      platformUserForm: {
-        platformUserId: "", //用户ID
-        platformUserName: "", //用户名称
-        platformUserType: "", //用户类型
-        subordinateDepartments: "", //所属科室
-        subordinateInpatientWard: "", //所属病区
-        applicationSystem: [], //应用系统
-        statu: ""
-      },
-      platformUserFormRules: {
-        platformUserId: [
-          { required: true, message: "请输入活动名称", trigger: "blur" },
-          { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
-        ],
-        platformUserName: [
-          { required: true, message: "请输入活动名称", trigger: "blur" },
-          { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
-        ],
-        platformUserType: [
-          { required: true, message: "请选择活动区域", trigger: "change" }
-        ],
-        subordinateDepartments: [
-          { required: true, message: "请选择活动区域", trigger: "change" }
-        ],
-        subordinateInpatientWard: [
-          { required: true, message: "请选择活动区域", trigger: "change" }
-        ],
-        applicationSystem: [
-          {
-            type: "array",
-            required: true,
-            message: "请至少选择一个活动性质",
-            trigger: "change"
-          }
-        ],
-        statu: [
-          { required: true, message: "请选择活动资源", trigger: "change" }
-        ]
-      },
-      textarea: "",
-
-      selectArr: [], // 右边列表
-      buttonSize: "large",
-      options: [],
-      value: "",
-      platformUserData: [
-        {
-          date: "2016-05-01",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-08",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        },
-        {
-          date: "2016-05-06",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        }
-      ],
-      nowSelectData: [], // 左边选中列表数据
-      nowSelectRightData: [], // 右边选中列表数据
-      UserInfoData: [
-        {
-          date: "2016-05-02",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        }
-      ],
-      UserLimitsData: [
-        {
-          date: "2016-05-02",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄"
-        }
-      ]
+      totalCount: null, //表格数据总条数
+      nodeClickId: 0, //机构id
+      dialogFormEvent: false, //表格事件弹窗
+      eventId: "", //表格事件弹窗id
+      userInfoData: {}, //用户信息数据
+      userIdDialog: "" //角色id
     };
   }, // 生命周期 - 创建完成（可以访问当前this实例）
   created() {
@@ -625,11 +261,18 @@ export default {
     }
   },
   methods: {
+    getPlatformAsideHeight() {
+      // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
+      this.platformAsideHeight.height = window.innerHeight - 172 + "px";
+    },
+    getTableHeight() {
+      // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
+      this.tableHeight = window.innerHeight - 256 + "px";
+    },
     //获取树型结构
     getDataTree() {
       this.axios
-        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 1, {
-          //row.id
+        .get("http://192.168.0.40:9900/uc/sys/organization/tree/" + 0, {
           params: { type: "0" },
           headers: { authorization: this.tokenValue }
         })
@@ -642,98 +285,131 @@ export default {
           }
         });
     },
-    getPlatformAsideHeight() {
-      // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
-      this.platformAsideHeight.height = window.innerHeight - 172 + "px";
-    },
-    searchOrganization(value) {
-      console.log(value);
-    },
-    handleSelectionChange(val) {
-      this.multipleSelection = val;
-    },
-    getTableHeight() {
-      // 获取浏览器高度，减去顶部导航栏的值70（可动态获取）
-      this.tableHeight = window.innerHeight - 256 + "px";
-    },
     //设置表格数据
-    setTableData(data) {
-      this.organizationTableData = data;
-    },
-    next() {
-      //步骤条事件:下一步
-      if (this.active++ > 2) {
-        this.active = 2;
-        this.dialogId = 3;
-      } else {
-        this.dialogId++;
-      }
-    },
-    last() {
-      if (this.active-- < 0) {
-        this.active = 1;
-        this.dialogId = 1;
-      } else {
-        this.dialogId--;
-      }
-    },
-    //提交表单
-    submitForm(formName) {
-      this.$refs[formName].validate(valid => {
-        if (valid) {
-          alert("submit!");
-        } else {
-          console.log("error submit!!");
-          return false;
-        }
-      });
-    },
-
-    checkAll(val) {
-      this.nowSelectData = val;
-    },
-    checkRightAll(val) {
-      this.nowSelectRightData = val;
-    },
-    //搜索弹窗内平台用户
-    searchPlatformUser(value) {
-      console.log(value);
-    },
-    // 选中
-    handelSelect() {
-      this.selectArr = this.handleConcatArr(this.selectArr, this.nowSelectData);
-      this.handleRemoveTabList(this.nowSelectData, this.platformUserData);
-      this.nowSelectData = [];
-    },
-    // 取消
-    handleRemoveSelect() {
-      this.platformUserData = this.handleConcatArr(
-        this.platformUserData,
-        this.nowSelectRightData
-      );
-      this.handleRemoveTabList(this.nowSelectRightData, this.selectArr);
-      this.nowSelectRightData = [];
-    },
-    handleConcatArr(selectArr, nowSelectData) {
-      let arr = [];
-      arr = arr.concat(selectArr, nowSelectData);
-      return arr;
-    },
-    handleRemoveTabList(isNeedArr, originalArr) {
-      if (isNeedArr.length && originalArr.length) {
-        for (let i = 0; i < isNeedArr.length; i++) {
-          for (let k = 0; k < originalArr.length; k++) {
-            if (isNeedArr[i]["name"] === originalArr[k]["name"]) {
-              originalArr.splice(k, 1);
-            }
+    getlist(data) {
+      this.axios
+        .get("http://192.168.0.40:9900/uc/sys/user/page", {
+          params: data,
+          headers: { authorization: this.tokenValue }
+        })
+        .then(res => {
+          //获取表格数据，默认第一页 10条
+          if (res.data && res.data.code === 0) {
+            this.tableData = res.data.data.list; //后端返回的表格数据
+            this.totalCount = res.data.data.totalCount; // 后端返回的总条数
+          } else {
+            this.$message.error(res.data.msg);
           }
-        }
-      }
+        });
     },
     //获取树形结构节点id
     getNodeId(val) {
       this.nodeClickId = val;
-    }
+      let data = {
+        organizationId: val,
+        limit: 10,
+        page: 1
+      };
+      this.getlist(data);
+    },
+    //搜索组件
+    searchOrganization(val) {
+      let data = {
+        type: this.organizationStatus, //组织状态
+        condition: val, //搜索值
+        organizationId: this.nodeClickId, //机构id
+        limit: 10,
+        page: 1
+      };
+      this.getlist(data);
+    },
+    //表格-修改信息
+    changeInfo(row) {
+      row.type = row.type.toString();
+      this.userInfoData = row;
+      this.dialogFormEvent = true;
+      this.eventId = 1;
+    },
+    //表格-停用用户
+    disabledUser(row) {
+      this.axios({
+        method: "post",
+        url: "http://192.168.0.40:9900/uc/sys/user/switch/" + row.id + "/" + 1,
+        headers: {
+          authorization: this.tokenValue
+        }
+      }).then(res => {
+        if (res.data && res.data.code === 0) {
+          this.$message.success("停用用户成功！");
+        } else {
+          this.$message.error(res.data.msg);
+        }
+      });
+    },
+    //表格-设置角色
+    setRole(row) {
+      // row.type = row.type.toString();
+      this.userIdDialog = row.id;
+      this.dialogFormEvent = true;
+      this.eventId = 2;
+    },
+    //表格-恢复原始密码
+    restoreOriginalPassword(row) {
+      let updateData = this.qs.stringify({
+        username: row.username
+      });
+      this.axios({
+        method: "post",
+        url: "http://192.168.0.40:9900/uc/sys/user/password/reset",
+        data: updateData,
+        headers: {
+          authorization: this.tokenValue
+        }
+      }).then(res => {
+        if (res.data && res.data.code === 0) {
+          this.$message.success("恢复原始密码成功！");
+        } else {
+          this.$message.error(res.data.msg);
+        }
+      });
+    },
+    //表格-解锁用户
+    unlockUser(row) {
+      // let updateData = this.qs.stringify({
+      //   username: row.username
+      // });
+      this.axios({
+        method: "post",
+        url: "http://192.168.0.40:9900/uc/sys/user/unlock/" + row.username,
+        headers: {
+          authorization: this.tokenValue
+        }
+      }).then(res => {
+        if (res.data && res.data.code === 0) {
+          this.$message.success("解锁用户成功！");
+        } else {
+          this.$message.error(res.data.msg);
+        }
+      });
+    },
+    //表格-删除用户
+    removeUser(row) {
+      this.axios({
+        method: "post",
+        url: "http://192.168.0.40:9900/uc/sys/user/delete/" + row.id,
+        headers: {
+          authorization: this.tokenValue
+        }
+      }).then(res => {
+        if (res.data && res.data.code === 0) {
+          this.$message.success("删除用户成功！");
+        } else {
+          this.$message.error(res.data.msg);
+        }
+      });
+    },
+    //表格-应用范畴
+    applicationCategory() {}
   },
   computed: {
     ...mapState({
@@ -751,9 +427,6 @@ export default {
   padding: 0;
   padding-top: 5px;
 }
-.organization-header {
-  min-width: 630px;
-}
 
 .fr {
   float: right;
@@ -766,7 +439,9 @@ export default {
 }
 #platform-user .el-dialog__body {
   padding: 0;
-  padding-left: 5px;
+}
+#platform-user .el-dialog__header {
+  padding: 0;
 }
 
 .opSetting {
@@ -775,8 +450,5 @@ export default {
 }
 .spacing {
   margin-top: 10px;
-}
-.searchWidth {
-  width: 150px;
 }
 </style>

@@ -1,5 +1,12 @@
 <template>
-  <el-dialog title="修改密码" :visible.sync="visible" :append-to-body="true">
+  <el-dialog
+    title="修改密码"
+    :visible.sync="visible"
+    :append-to-body="true"
+    :show-close="false"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+  >
     <el-form
       :model="dataForm"
       :rules="dataRule"
@@ -74,7 +81,10 @@ export default {
       set(val) {
         this.$store.commit("updateMainTabs", val);
       }
-    }
+    },
+    ...mapGetters({
+      tokenValue: "tokenValue"
+    })
   },
   methods: {
     // 初始化
@@ -125,11 +135,6 @@ export default {
         }
       });
     }
-  },
-  computed: {
-    ...mapGetters({
-      tokenValue: "tokenValue"
-    })
   }
 };
 </script>

@@ -186,7 +186,7 @@ export default {
       tableHeight: "", //表格高度
       dialogFormVisible: false, //弹窗是否显示
       totalCount: null, //表格数据总条数
-      nodeClickId: 0, //组织机构id 默认全部
+      nodeClickId: 0, //组织机构id
       changeOrganization: {} //修改组织的信息
     };
   }, // 生命周期 - 创建完成（可以访问当前this实例）
